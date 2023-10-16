@@ -8,14 +8,16 @@ from flask import g
 
 from playwright.sync_api import sync_playwright
 
-APP = flask.Flask(__name__)
+PROFILE_DIR = "/tmp/playwright" if '--profile' not in sys.argv else sys.argv[sys.argv.index('--profile') + 1]
+PORT = 5001 if '--port' not in sys.argv else int(sys.argv[sys.argv.index('--port') + 1])
+APP = flask.Flask(name)
 PLAY = sync_playwright().start()
-BROWSER = PLAY.chromium.launch_persistent_context(
-    user_data_dir="/tmp/playwright",
-    headless=False,
+BROWSER = PLAY.firefox.launch_persistent_context(
+user_data_dir=PROFILE_DIR,
+headless=False,
+java_script_enabled=True,
 )
 PAGE = BROWSER.new_page()
-
 
 def get_input_box():
     """Get the child textarea of `PromptTextarea__TextareaWrapper`"""
