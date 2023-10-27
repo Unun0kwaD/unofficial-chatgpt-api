@@ -3,11 +3,14 @@
 import time
 import os
 import flask
-
-from flask import g
+import sys
+from flask import request, jsonify, g
+import random
+from bs4 import BeautifulSoup
 
 from playwright.sync_api import sync_playwright
 
+name = "app"
 PROFILE_DIR = "/tmp/playwright" if '--profile' not in sys.argv else sys.argv[sys.argv.index('--profile') + 1]
 PORT = 5001 if '--port' not in sys.argv else int(sys.argv[sys.argv.index('--port') + 1])
 APP = flask.Flask(name)
@@ -29,7 +32,7 @@ def is_logged_in():
 
 def is_loading_response() -> bool:
     """See if the send button is diabled, if it does, we're not loading"""
-    return PAGE.query_selector('button div.text-2xl') != None
+    return PAGE.query_selector('button div.text-2xl') is not None
 
 def send_message(message):
     # Send the message
@@ -38,11 +41,18 @@ def send_message(message):
     box.fill(message)
     box.press("Enter")
 
+@APP.route("/lastmsg", methods=["GET"])
 def get_last_message():
     """Get the latest message"""
+    print("GETTING LAST MESSAGE")
     while is_loading_response():
         time.sleep(0.25)
-    page_elements = PAGE.query_selector_all(".markdown.prose")
+    time.sleep(0.5)
+    print("not loading")
+    while True:
+        page_elements = PAGE.query_selector_all(".markdown.prose")
+        if page_elements != []:
+            break
     last_element = page_elements.pop()
     return last_element.inner_text()
 
@@ -54,18 +64,34 @@ def regenerate_response():
         try_again_button.click()
     return try_again_button
 
+#Okay, let’s go
+@APP.route("/start", methods=["GET"])
+def press_ok():
+
+    ok_button=PAGE.query_selector(".btn.relative.btn-primary")
+    print(ok_button.inner_text)
+    if ok_button is not None:
+        ok_button.click()
+        ok_button.press("Enter")
+    return ok_button
+
 def get_reset_button():
     """Returns the reset thread button (it is an a tag not a button)"""
     return PAGE.query_selector("a:has-text('Reset thread')")
 
-@APP.route("/chat", methods=["GET"]) #TODO: make this a POST
+@APP.route("/chat", methods=["POST"]) 
 def chat():
-    message = flask.request.args.get("q")
+    try:
+        data = request.get_json()
+        message = data["q"]  # Assuming the key is "q" in the JSON data
+    except KeyError:
+        return jsonify({"error": "Invalid JSON format"}), 400
+
     print("Sending message: ", message)
     send_message(message)
     response = get_last_message()
     print("Response: ", response)
-    return response
+    return jsonify({"response": response})
 
 # create a route for regenerating the response
 @APP.route("/regenerate", methods=["POST"])
@@ -112,3 +138,7 @@ def start_browser():
 
 if __name__ == "__main__":
     start_browser()
+
+
+# curl -X POST -H "Content-Type: application/json" -d '{"q": "What is Banana"}' http://localhost:5001/chat
+# curl -X GET http://localhost:5001/lastmsg
