@@ -84,6 +84,7 @@ def chat():
     try:
         data = request.get_json()
         message = data["q"]  # Assuming the key is "q" in the JSON data
+        print(message)
     except KeyError:
         return jsonify({"error": "Invalid JSON format"}), 400
 
@@ -134,7 +135,7 @@ def start_browser():
         input()
     else:
         print("Logged in")
-        APP.run(port=5001, threaded=False)
+        APP.run(port=6001, threaded=False)
 
 if __name__ == "__main__":
     start_browser()
