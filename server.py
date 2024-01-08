@@ -34,6 +34,11 @@ def is_loading_response() -> bool:
     """See if the send button is diabled, if it does, we're not loading"""
     return PAGE.query_selector('button div.text-2xl') is not None
 
+
+
+def is_finished_loading() -> bool:
+    return PAGE.query_selector('div.overflow-hidden button:disabled') is not None
+
 def send_message(message):
     # Send the message
     box = get_input_box()
@@ -45,9 +50,19 @@ def send_message(message):
 def get_last_message():
     """Get the latest message"""
     print("GETTING LAST MESSAGE")
-    while is_loading_response():
-        time.sleep(0.25)
-    time.sleep(0.5)
+    # while is_loading_response():
+    #     time.sleep(0.25)
+    # time.sleep(0.5)
+    # while is_finished_loading():
+    #     time.sleep(0.25)
+
+      # Wait for the loading spinner to disappear
+    PAGE.wait_for_selector('.loading-spinner', state='hidden')
+    print("answer loading")
+    
+    # Wait for the send button to be enabled
+    PAGE.wait_for_selector('button[aria-label="Stop generating"]', state='hidden')
+    
     print("not loading")
     while True:
         page_elements = PAGE.query_selector_all(".markdown.prose")
